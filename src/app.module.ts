@@ -1,3 +1,4 @@
+import './env.loader';
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -11,9 +12,13 @@ import { RagModule } from './modules/rag/rag.module';
 import { StorageModule } from './modules/storage/storage.module';
 import { UsersModule } from './modules/users/users.module';
 
+// better auth 
+import { AuthModule as BetterAuthModule } from '@thallesp/nestjs-better-auth';
+import {auth} from "./auth"
 @Module({
   imports: [
     ConfigModule,
+    BetterAuthModule.forRoot({ auth }),
     HealthModule,
     AuthModule,
     UsersModule,

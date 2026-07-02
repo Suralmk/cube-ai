@@ -10,6 +10,7 @@ import { validateEnv } from './validation.schema';
       load: [configuration],
       validate: validateEnv,
       envFilePath: [
+        '.env',
         `src/config/env/.env.${process.env.NODE_ENV ?? 'development'}`,
         'src/config/env/.env.development',
       ],
