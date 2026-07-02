@@ -1,7 +1,10 @@
-# Cube AI
+<p align="center">
+  <img src="assets/logo.png" alt="Cube AI logo" width="200" />
+</p>
 
-**AI UGC Studio** — an automation platform for TikTok, Instagram Reels, and YouTube Shorts.
+<h1 align="center">Cube AI</h1>
 
+<p align="center"><strong>AI UGC Studio</strong> — an automation platform for TikTok, Instagram Reels, and YouTube Shorts.</p>
 Cube AI helps creators and businesses turn product knowledge into short-form video content at scale. Upload brand assets, generate on-brand scripts and metadata, and run scheduled content workflows from a single backend.
 
 ## What the platform does
