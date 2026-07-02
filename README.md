@@ -34,6 +34,7 @@ Creators and businesses can:
 ## Tech stack
 
 - [NestJS](https://nestjs.com/) — API and backend services
+- [Better Auth](https://www.better-auth.com/) — authentication and session management
 - TypeScript
 - pnpm
 
