@@ -4,39 +4,50 @@
 
 <h1 align="center">Cube AI</h1>
 
-<p align="center"><strong>AI UGC Studio</strong> — an automation platform for TikTok, Instagram Reels, and YouTube Shorts.</p>
-Cube AI helps creators and businesses turn product knowledge into short-form video content at scale. Upload brand assets, generate on-brand scripts and metadata, and run scheduled content workflows from a single backend.
+<p align="center"><strong>AI-powered maintenance documentation platform</strong> for field-service companies.</p>
+
+Cube AI is a multi-tenant SaaS platform where HVAC, elevator, solar, fire safety, generator, and similar maintenance companies upload equipment manuals and service bulletins once — then technicians and clients chat with that knowledge base to get fast, accurate, **source-cited** answers instead of searching hundreds of PDF pages in the field.
+
+Every company operates in a **fully isolated organization**. Documents, chat history, and vector indexes are never visible to other tenants.
 
 ## What the platform does
 
-Creators and businesses can:
+- **Organization-based multi-tenancy** — strict data isolation per company at the database and vector-search layer
+- **Document upload & management** — PDFs and service docs parsed, chunked, indexed; status tracking (processing, ready, failed)
+- **Document chat** — natural-language Q&A grounded in uploaded manuals with citations to document and page
+- **Chat sessions & history** — conversations organized by job, equipment issue, or visit
+- **Asset/model scoping** — tag docs by manufacturer, model, or equipment type; narrow chat to a specific asset
+- **Structured spec extraction** — part numbers, torque values, safety warnings, maintenance intervals surfaced as quick reference
+- **Role-based access** — clients see summaries; technicians see full technical and safety-critical detail
+- **Multi-language answers** — respond in the user's language regardless of manual language
+- **Audio answers (TTS)** — optional spoken playback for hands-busy field work
+- **Manual versioning** — track revised manuals and alert staff when documentation changes
+- **Audit trail** — every question, answer, and citation logged for compliance
+- **Escalation & feedback** — flag uncertain answers for human expert review
+- **Offline-friendly access** — cache recently accessed manuals and sessions for poor-connectivity sites
 
-- **Upload product knowledge** — PDFs, websites, product sheets, and brand documents
-- **Build a RAG knowledge base** — ingest and index content for context-aware generation
-- **Generate UGC video scripts** — tailored for TikTok, Instagram Reels, and YouTube Shorts
-- **Generate supporting copy** — captions, hooks, hashtags, and CTAs
-- **Create variations automatically** — multiple script and copy variants per product or campaign
-- **Schedule workflows** — automate content generation on a recurring or planned basis
-- **Track usage and performance** — credits, usage metrics, and analytics
+## How it works
 
-## Core capabilities
+```text
+Upload → Parse & index (per org) → Ask question → Retrieve org-scoped chunks → Grounded cited answer → Log & deliver
+```
 
-| Area | Description |
-|------|-------------|
-| Knowledge ingestion | Upload and parse product info, PDFs, URLs, and brand docs |
-| RAG pipeline | Retrieve relevant context when generating scripts and copy |
-| Script generation | Platform-specific UGC scripts for short-form video |
-| Copy generation | Hooks, captions, hashtags, and calls-to-action |
-| Variations | Batch generation of multiple creative angles |
-| Scheduling | Workflow automation for recurring content production |
-| Analytics | Usage, credits, and content performance tracking |
+1. A company uploads a manual → stored in S3, processed in the background, indexed into their org knowledge base.
+2. A user asks a question → the system searches **only that organization's** documents (optionally scoped to an asset).
+3. Relevant manual sections are used to generate a precise answer with **citations** — not generic AI knowledge.
+4. The answer is returned in chat, optionally translated or read aloud, and logged for audit.
 
 ## Tech stack
 
 - [NestJS](https://nestjs.com/) — API and backend services
-- [Better Auth](https://www.better-auth.com/) — authentication and session management
-- TypeScript
-- pnpm
+- [Better Auth](https://www.better-auth.com/) — authentication and sessions
+- [Drizzle ORM](https://orm.drizzle.team/) — PostgreSQL
+- [Qdrant](https://qdrant.tech/) — vector search (org-filtered)
+- AWS S3 — document storage
+- OpenRouter — LLM and embeddings
+- TypeScript · pnpm
+
+See [docs/IMPLEMENTATION.md](docs/IMPLEMENTATION.md) for the full backend implementation guide.
 
 ## Project setup
 
@@ -57,16 +68,18 @@ pnpm run start:dev
 pnpm run start:prod
 ```
 
+## Database migrations
+
+```bash
+pnpm db:generate
+pnpm db:migrate
+```
+
 ## Testing
 
 ```bash
-# unit tests
 pnpm run test
-
-# e2e tests
 pnpm run test:e2e
-
-# test coverage
 pnpm run test:cov
 ```
 
