@@ -7,8 +7,7 @@ import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { validationPipe } from './common/pipes/validation.pipe';
 import helmet from 'helmet';
-import { ThrottlerModule } from '@nestjs/throttler'
-
+import { ThrottlerModule } from '@nestjs/throttler';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
