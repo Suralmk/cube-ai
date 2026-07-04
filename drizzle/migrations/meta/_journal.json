@@ -8,6 +8,13 @@
       "when": 1783015245456,
       "tag": "0000_nebulous_morlun",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1783154067875,
+      "tag": "0001_nosy_magdalene",
+      "breakpoints": true
     }
   ]
 }
