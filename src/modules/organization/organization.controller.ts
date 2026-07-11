@@ -1,11 +1,10 @@
-import { Controller, Get, Post, Put, Delete } from '@nestjs/common';
+import { Body, Controller, Get, Post } from '@nestjs/common';
 import { LoggerProvider } from 'src/common/providers/logger.provider';
 import { OrganizationService } from './organization.service';
+import { CreateOrganizationDto } from './dto/create-organization.dto';
 import {
   Session,
- type UserSession,
-  AllowAnonymous,
-  OptionalAuth,
+  type UserSession,
 } from '@thallesp/nestjs-better-auth';
 
 @Controller('organizations')
@@ -18,5 +17,14 @@ export class OrganizationController {
   @Get()
   async fetchOrgByUser(@Session() session: UserSession) {
     return this.orgService.fetchOrgByUser(session.user.id);
+  }
+
+  @Post()
+  async createOrganization(
+    @Session() session: UserSession,
+    @Body() dto: CreateOrganizationDto,
+  ) {
+    this.logger.log(`Creating organization for user ${session.user.id}`);
+    return this.orgService.createForUser(session.user.id, dto);
   }
 }

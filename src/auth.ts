@@ -30,7 +30,15 @@ export const auth = betterAuth({
     organization(),
   ],
   emailAndPassword: { enabled: true },
-  trustedOrigins: [process.env.FRONTEND_URL!],
+  trustedOrigins: [
+    ...new Set(
+      [
+        process.env.FRONTEND_URL,
+        'http://localhost:3000',
+        'http://localhost:5173',
+      ].filter((v): v is string => Boolean(v)),
+    ),
+  ],
   secret: process.env.BETTER_AUTH_SECRET!,
   baseURL: process.env.BETTER_AUTH_URL!,
 });

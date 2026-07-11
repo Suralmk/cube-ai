@@ -12,6 +12,8 @@ import { KnowledgeModule } from './modules/knowledge/knowledge.module';
 import { RagModule } from './modules/rag/rag.module';
 import { StorageModule } from './modules/storage/storage.module';
 import { UsersModule } from './modules/users/users.module';
+import { DocumentsModule } from './modules/documents/documents.module';
+import { ChatModule } from './modules/chat/chat.module';
 import { OrganizationModule } from './modules/organization/organization.modules';
 // better auth
 import { AuthModule as BetterAuthModule } from '@thallesp/nestjs-better-auth';
@@ -30,6 +32,8 @@ import { auth } from './auth';
     GenerationModule,
     StorageModule,
     OrganizationModule,
+    DocumentsModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [AppService],
