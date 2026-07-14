@@ -1,5 +1,7 @@
 import { apiFetch } from "@/lib/api-client";
 
+export type DocumentStatus = "processing" | "ready" | "failed";
+
 export type ApiDocument = {
   id: string;
   uploaded_by: string;
@@ -8,6 +10,7 @@ export type ApiDocument = {
   filename: string;
   docuemntType: string;
   s3_key: string;
+  status: DocumentStatus;
   createdAt: string;
   updatedAt: string;
 };
