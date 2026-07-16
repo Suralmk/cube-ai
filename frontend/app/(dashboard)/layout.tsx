@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { DashboardGate } from "@/components/dashboard-gate";
@@ -11,7 +12,9 @@ export default function DashboardLayout({
     <DashboardGate>
       <SidebarProvider>
         <div className="flex h-svh w-full overflow-hidden bg-white dark:bg-black">
-          <AppSidebar />
+          <Suspense fallback={null}>
+            <AppSidebar />
+          </Suspense>
           <main className="flex flex-1 flex-col min-h-0 min-w-0 bg-zinc-50/50 dark:bg-zinc-950/50">
             {children}
           </main>

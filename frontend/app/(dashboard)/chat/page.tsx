@@ -6,11 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import { Send, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 import {
   createChatSession,
   fetchSessionMessages,
-  sendChatMessage,
+  streamChatMessage,
 } from "@/lib/api/chat";
+import { ApiError } from "@/lib/api-client";
+import { Markdown } from "@/components/markdown";
 
 type Message = {
   id: string;
@@ -42,7 +45,7 @@ function ChatInputForm({
 
   return (
     <div className={className}>
-      <form onSubmit={onSubmit} className="relative flex items-center">
+      <form onSubmit={onSubmit} className="relative flex items-end">
         <Textarea
           ref={textareaRef}
           value={input}
@@ -61,15 +64,33 @@ function ChatInputForm({
         <Button
           type="submit"
           size="icon"
-          className="absolute right-1.5 h-9 w-9 rounded-full"
+          className="absolute right-1.5 bottom-1.5 h-9 w-9 rounded-full"
           disabled={!input.trim() || disabled}
         >
-          <Send className="w-4 h-4" />
+          {disabled ? (
+            <Spinner className="size-4" />
+          ) : (
+            <Send className="w-4 h-4" />
+          )}
         </Button>
       </form>
       <p className="text-center text-xs text-muted-foreground mt-2">
         AI can make mistakes. Verify critical information in the source manual.
       </p>
+    </div>
+  );
+}
+
+function TypingIndicator() {
+  return (
+    <div className="flex w-full">
+      <div className="rounded-2xl bg-muted px-4 py-3 text-foreground">
+        <div className="flex items-center gap-1.5">
+          <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground/70 [animation-delay:-0.2s]" />
+          <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground/70 [animation-delay:-0.1s]" />
+          <span className="size-1.5 animate-bounce rounded-full bg-muted-foreground/70" />
+        </div>
+      </div>
     </div>
   );
 }
@@ -84,11 +105,23 @@ function ChatPageContent() {
   const [isLoading, setIsLoading] = useState(!!sessionId);
   const [isSending, setIsSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const activeSessionRef = useRef<string | null>(sessionId);
+  const skipNextLoadRef = useRef(false);
   const hasMessages = messages.length > 0;
+
+  useEffect(() => {
+    activeSessionRef.current = sessionId;
+  }, [sessionId]);
 
   useEffect(() => {
     if (!sessionId) {
       setMessages([]);
+      setIsLoading(false);
+      return;
+    }
+
+    if (skipNextLoadRef.current) {
+      skipNextLoadRef.current = false;
       setIsLoading(false);
       return;
     }
@@ -107,8 +140,14 @@ function ChatPageContent() {
           })),
         );
       })
-      .catch(() => {
-        if (!cancelled) setMessages([]);
+      .catch((error) => {
+        if (cancelled) return;
+        setMessages([]);
+        toast.error(
+          error instanceof ApiError
+            ? error.message
+            : "Failed to load chat history",
+        );
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false);
@@ -120,9 +159,9 @@ function ChatPageContent() {
   }, [sessionId]);
 
   useEffect(() => {
-    if (!hasMessages || !scrollRef.current) return;
+    if (!scrollRef.current) return;
     scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [messages, hasMessages]);
+  }, [messages, isSending]);
 
   const handleSend = useCallback(
     async (e: React.FormEvent) => {
@@ -133,42 +172,91 @@ function ChatPageContent() {
       setIsSending(true);
       setInput("");
 
+      const tempUserId = `temp-user-${Date.now()}`;
+      const assistantId = `assistant-${Date.now()}`;
+      setMessages((prev) => [
+        ...prev,
+        { id: tempUserId, role: "user", content },
+      ]);
+
       try {
-        let activeSessionId = sessionId;
+        let activeSessionId = activeSessionRef.current;
 
         if (!activeSessionId) {
           const session = await createChatSession(
             content.slice(0, 80) || "New chat",
           );
           activeSessionId = session.id;
+          activeSessionRef.current = session.id;
+          skipNextLoadRef.current = true;
           router.replace(`/chat?session=${activeSessionId}`);
+          window.dispatchEvent(new Event("cube-ai:chat-sessions-changed"));
         }
 
-        const { userMessage, assistantMessage } = await sendChatMessage(
-          activeSessionId,
-          content,
+        await streamChatMessage(activeSessionId, content, {
+          onUserMessage: (message) => {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === tempUserId
+                  ? { id: message.id, role: "user", content: message.content }
+                  : m,
+              ),
+            );
+          },
+          onDelta: (delta) => {
+            setMessages((prev) => {
+              if (!prev.some((m) => m.id === assistantId)) {
+                return [
+                  ...prev,
+                  { id: assistantId, role: "assistant", content: delta },
+                ];
+              }
+              return prev.map((m) =>
+                m.id === assistantId
+                  ? { ...m, content: m.content + delta }
+                  : m,
+              );
+            });
+          },
+          onDone: (message) => {
+            setMessages((prev) => {
+              if (prev.some((m) => m.id === assistantId)) {
+                return prev.map((m) =>
+                  m.id === assistantId
+                    ? {
+                        id: message.id,
+                        role: "assistant",
+                        content: message.content,
+                      }
+                    : m,
+                );
+              }
+              return [
+                ...prev,
+                {
+                  id: message.id,
+                  role: "assistant",
+                  content: message.content,
+                },
+              ];
+            });
+          },
+        });
+      } catch (error) {
+        setMessages((prev) =>
+          prev.filter((m) => m.id !== tempUserId && m.id !== assistantId),
         );
-
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: userMessage.id,
-            role: "user",
-            content: userMessage.content,
-          },
-          {
-            id: assistantMessage.id,
-            role: "assistant",
-            content: assistantMessage.content,
-          },
-        ]);
-      } catch {
         setInput(content);
+        toast.error(
+          error instanceof ApiError
+            ? error.message
+            : "Failed to send message. Please try again.",
+        );
       } finally {
         setIsSending(false);
       }
     },
-    [input, isSending, router, sessionId],
+    [input, isSending, router],
   );
 
   if (isLoading) {
@@ -188,11 +276,11 @@ function ChatPageContent() {
           Knowledge Chat
         </h1>
         <p className="text-muted-foreground mt-1 text-sm md:text-base">
-          Search across your organization&apos;s maintenance manuals and documents.
+          Ask questions — answers come from Cube AI via OpenRouter.
         </p>
       </div>
 
-      {!hasMessages ? (
+      {!hasMessages && !isSending ? (
         <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-4 min-h-0">
           <div className="flex flex-col items-center text-center mb-8 max-w-lg">
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
@@ -203,7 +291,7 @@ function ChatPageContent() {
             </h2>
             <p className="mt-2 text-sm text-muted-foreground">
               Ask about torque specs, safety procedures, part numbers, or
-              troubleshooting — answers are grounded in your uploaded manuals.
+              troubleshooting.
             </p>
           </div>
           <ChatInputForm
@@ -232,23 +320,29 @@ function ChatPageContent() {
                 >
                   <div
                     className={`flex flex-col gap-2 ${
-                      msg.role === "user" ? "items-end" : "items-start"
+                      msg.role === "user"
+                        ? "items-end"
+                        : "items-start w-full"
                     }`}
                   >
-                    <div
-                      className={`px-4 py-3 rounded-2xl ${
-                        msg.role === "user"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-foreground"
-                      }`}
-                    >
-                      <p className="leading-relaxed whitespace-pre-wrap">
-                        {msg.content}
-                      </p>
-                    </div>
+                    {msg.role === "assistant" ? (
+                      <div className="text-foreground">
+                        <Markdown content={msg.content} />
+                      </div>
+                    ) : (
+                      <div className="px-4 py-3 rounded-2xl bg-primary text-primary-foreground">
+                        <p className="leading-relaxed whitespace-pre-wrap">
+                          {msg.content}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
+              {isSending &&
+                messages[messages.length - 1]?.role !== "assistant" && (
+                  <TypingIndicator />
+                )}
             </div>
           </div>
 

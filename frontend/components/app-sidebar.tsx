@@ -1,11 +1,18 @@
 "use client";
 
 import { useAuth } from "@/lib/auth-context";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTheme } from "@teispace/next-themes";
-import { fetchChatSessions, type ChatSession } from "@/lib/api/chat";
+import { toast } from "sonner";
+import {
+  fetchChatSessions,
+  updateChatSession,
+  deleteChatSession,
+  type ChatSession,
+} from "@/lib/api/chat";
+import { ApiError } from "@/lib/api-client";
 import {
   Sidebar,
   SidebarContent,
@@ -13,6 +20,7 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
@@ -20,6 +28,11 @@ import {
   useSidebar,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { 
   FileText, 
   Settings, 
@@ -29,6 +42,10 @@ import {
   Sun,
   Moon,
   Monitor,
+  Plus,
+  MoreVertical,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -50,9 +67,160 @@ const navItems = [
 ];
 
 
+function SessionMenuItem({
+  session,
+  isActive,
+  onRenamed,
+  onDeleted,
+}: {
+  session: ChatSession;
+  isActive: boolean;
+  onRenamed: (session: ChatSession) => void;
+  onDeleted: (id: string) => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [title, setTitle] = useState(session.title);
+  const [busy, setBusy] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setTitle(session.title);
+  }, [session.title]);
+
+  useEffect(() => {
+    if (!isEditing) return;
+    const el = inputRef.current;
+    if (!el) return;
+    el.focus();
+    el.select();
+  }, [isEditing]);
+
+  const startRename = () => {
+    setMenuOpen(false);
+    setTitle(session.title);
+    setIsEditing(true);
+  };
+
+  const cancelRename = () => {
+    setIsEditing(false);
+    setTitle(session.title);
+  };
+
+  const submitRename = async () => {
+    const next = title.trim();
+    if (!next || next === session.title) {
+      cancelRename();
+      return;
+    }
+    setBusy(true);
+    try {
+      const updated = await updateChatSession(session.id, next);
+      onRenamed(updated);
+      setIsEditing(false);
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError ? error.message : "Failed to rename chat",
+      );
+      cancelRename();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setMenuOpen(false);
+    setBusy(true);
+    try {
+      await deleteChatSession(session.id);
+      onDeleted(session.id);
+    } catch (error) {
+      toast.error(
+        error instanceof ApiError ? error.message : "Failed to delete chat",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <SidebarMenuItem>
+        <input
+          ref={inputRef}
+          value={title}
+          disabled={busy}
+          onChange={(e) => setTitle(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              void submitRename();
+            } else if (e.key === "Escape") {
+              e.preventDefault();
+              cancelRename();
+            }
+          }}
+          onBlur={cancelRename}
+          className="w-full rounded-xl border border-sidebar-border bg-background px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+        />
+      </SidebarMenuItem>
+    );
+  }
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        isActive={isActive}
+        render={
+          <Link
+            href={`/chat?session=${session.id}`}
+            className="flex items-center gap-2 w-full"
+          />
+        }
+      >
+        <History className="w-4 h-4" />
+        <span className="truncate">{session.title}</span>
+      </SidebarMenuButton>
+
+      <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+        <PopoverTrigger
+          render={
+            <SidebarMenuAction showOnHover aria-label="Chat options">
+              <MoreVertical className="w-4 h-4" />
+            </SidebarMenuAction>
+          }
+        />
+        <PopoverContent
+          align="start"
+          side="right"
+          className="w-40 gap-1 rounded-xl p-1"
+        >
+          <button
+            type="button"
+            onClick={startRename}
+            className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+          >
+            <Pencil className="w-4 h-4" />
+            Rename
+          </button>
+          <button
+            type="button"
+            onClick={handleDelete}
+            className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-destructive hover:bg-destructive/10"
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete
+          </button>
+        </PopoverContent>
+      </Popover>
+    </SidebarMenuItem>
+  );
+}
+
 export function AppSidebar() {
   const { user, logout } = useAuth();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const { state } = useSidebar();
@@ -60,10 +228,37 @@ export function AppSidebar() {
 
   useEffect(() => {
     if (!user) return;
-    fetchChatSessions()
-      .then(setSessions)
-      .catch(() => setSessions([]));
+
+    const loadSessions = () => {
+      fetchChatSessions()
+        .then(setSessions)
+        .catch(() => setSessions([]));
+    };
+
+    loadSessions();
+    window.addEventListener("cube-ai:chat-sessions-changed", loadSessions);
+    return () => {
+      window.removeEventListener("cube-ai:chat-sessions-changed", loadSessions);
+    };
   }, [user]);
+
+  const handleNewChat = () => {
+    router.push("/chat");
+  };
+
+  const handleRenamed = (updated: ChatSession) => {
+    setSessions((prev) =>
+      prev.map((s) => (s.id === updated.id ? updated : s)),
+    );
+    window.dispatchEvent(new Event("cube-ai:chat-sessions-changed"));
+  };
+
+  const handleDeleted = (id: string) => {
+    setSessions((prev) => prev.filter((s) => s.id !== id));
+    const current = new URLSearchParams(window.location.search).get("session");
+    if (current === id) router.push("/chat");
+    window.dispatchEvent(new Event("cube-ai:chat-sessions-changed"));
+  };
 
   if (!user) return null;
 
@@ -105,6 +300,16 @@ export function AppSidebar() {
                   </SidebarMenuItem>
                 );
               })}
+
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={handleNewChat}
+                  className="flex items-center gap-2 w-full"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>New Chat</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -121,19 +326,16 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               ) : (
                 sessions.map((session) => (
-                  <SidebarMenuItem key={session.id}>
-                    <SidebarMenuButton
-                      render={
-                        <Link
-                          href={`/chat?session=${session.id}`}
-                          className="flex items-center gap-2 w-full"
-                        />
-                      }
-                    >
-                      <History className="w-4 h-4" />
-                      <span className="truncate">{session.title}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
+                  <SessionMenuItem
+                    key={session.id}
+                    session={session}
+                    isActive={
+                      pathname.startsWith("/chat") &&
+                      searchParams.get("session") === session.id
+                    }
+                    onRenamed={handleRenamed}
+                    onDeleted={handleDeleted}
+                  />
                 ))
               )}
             </SidebarMenu>
