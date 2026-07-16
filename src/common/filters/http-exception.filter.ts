@@ -26,12 +26,22 @@ export class HttpExceptionFilter implements ExceptionFilter {
         ? exception.getResponse()
         : 'Internal server error';
 
+    const normalizedMessage =
+      typeof message === 'string'
+        ? message
+        : typeof message === 'object' &&
+            message !== null &&
+            'message' in message &&
+            typeof (message as { message?: unknown }).message === 'string'
+          ? (message as { message: string }).message
+          : message;
+
     response.status(status).json({
       success: false,
       statusCode: status,
       timestamp: new Date().toISOString(),
       path: request.url,
-      message,
+      message: normalizedMessage,
     });
   }
 }

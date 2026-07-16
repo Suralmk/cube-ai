@@ -12,6 +12,10 @@ export const envSchema = z.object({
   QDRANT_URL: z.string().url().optional(),
   QDRANT_API_KEY: z.string().optional(),
   OPENROUTER_API_KEY: z.string().optional(),
+  OPENROUTER_CHAT_MODEL: z
+    .string()
+    .default('meta-llama/llama-3.3-70b-instruct:free'),
+  OPENROUTER_FALLBACK_MODELS: z.string().optional(),
   AWS_REGION: z.string().optional(),
   AWS_S3_BUCKET_NAME: z.string().optional(),
   FRONTEND_URL: z.string().url().optional(),

@@ -11,3 +11,9 @@ export class CreateChatMessageDto {
   @IsNotEmpty()
   content: string;
 }
+
+export class UpdateChatSessionDto {
+  @IsString()
+  @IsNotEmpty()
+  title: string;
+}
