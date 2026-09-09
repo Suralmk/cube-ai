@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { DashboardGate } from "@/components/dashboard-gate";
+import { MobileSidebarTrigger } from "@/components/mobile-sidebar-trigger";
 
 export default function DashboardLayout({
   children,
@@ -15,7 +16,8 @@ export default function DashboardLayout({
           <Suspense fallback={null}>
             <AppSidebar />
           </Suspense>
-          <main className="flex flex-1 flex-col min-h-0 min-w-0 bg-zinc-50/50 dark:bg-zinc-950/50">
+          <main className="flex min-h-0 min-w-0 flex-1 flex-col bg-zinc-50/50 dark:bg-zinc-950/50">
+            <MobileSidebarTrigger />
             {children}
           </main>
         </div>

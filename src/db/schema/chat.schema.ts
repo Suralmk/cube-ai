@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, jsonb, index } from "drizzle-orm/pg-core"
+import { pgTable, text, timestamp, integer, doublePrecision, index } from "drizzle-orm/pg-core"
 import { organization } from "./organization.schema"
 import { user } from "./auth.schema"
 
@@ -26,3 +26,19 @@ export const chatMessage = pgTable("chat_message", {
 ])
 
 // citation schema for chat messages
+export const citation = pgTable("citation", {
+    id: text("id").primaryKey(),
+    messageId: text("message_id")
+        .references(() => chatMessage.id, { onDelete: 'cascade' })
+        .notNull(),
+    organizationId: text("organization_id").references(() => organization.id),
+    documentId: text("document_id"),
+    documentName: text("document_name").notNull(),
+    pageNumber: integer("page_number").notNull(),
+    chunkText: text("chunk_text").notNull(),
+    score: doublePrecision("score"),
+    marker: integer("marker").notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => [
+    index("citation_message_id_idx").on(table.messageId),
+])

@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/lib/auth-context";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useTheme } from "@teispace/next-themes";
@@ -265,13 +266,33 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-zinc-200 dark:border-zinc-800">
       <SidebarHeader className="p-4">
-        <div className={`flex ${state === "collapsed" ? "flex-col items-center gap-4" : "items-center justify-between"} px-1`}>
-          <div className="flex items-center gap-2">
-            <div className="bg-primary/10 p-1.5 rounded-md">
-              <Sparkles className="w-5 h-5 text-primary" />
-            </div>
-            {state !== "collapsed" && <span className="font-semibold text-lg tracking-tight">Cube AI</span>}
-          </div>
+        <div
+          className={`flex ${
+            state === "collapsed"
+              ? "flex-col items-center gap-4"
+              : "items-center justify-between gap-2"
+          } px-1`}
+        >
+          <Link
+            href="/chat"
+            className={`relative block shrink-0 overflow-hidden rounded-md ${
+              state === "collapsed" ? "h-8 w-8" : "h-10 w-40"
+            }`}
+            aria-label="Cube AI"
+          >
+            <Image
+              src="/logo.png"
+              alt="Cube AI"
+              fill
+              className={
+                state === "collapsed"
+                  ? "object-cover object-left"
+                  : "object-contain object-left"
+              }
+              sizes={state === "collapsed" ? "32px" : "160px"}
+              priority
+            />
+          </Link>
           <SidebarTrigger />
         </div>
       </SidebarHeader>

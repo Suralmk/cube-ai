@@ -1,6 +1,37 @@
 "use client";
 
 import React from "react";
+import type { Citation } from "@/lib/api/chat";
+
+type CitationContextValue = {
+  markerToCitation: Map<number, Citation>;
+  onCitationClick?: (citation: Citation) => void;
+};
+
+const CitationContext = React.createContext<CitationContextValue>({
+  markerToCitation: new Map(),
+});
+
+function CitationMarker({ marker }: { marker: number }) {
+  const { markerToCitation, onCitationClick } =
+    React.useContext(CitationContext);
+  const citation = markerToCitation.get(marker);
+
+  if (!citation) {
+    return <span className="align-super text-[0.7em]">[{marker}]</span>;
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => onCitationClick?.(citation)}
+      title={`${citation.documentName} — page ${citation.pageNumber}`}
+      className="mx-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded bg-primary/10 px-1 align-super text-[0.7em] font-semibold text-primary transition-colors hover:bg-primary/20"
+    >
+      {marker}
+    </button>
+  );
+}
 
 const INLINE_PATTERNS: {
   re: RegExp;
@@ -30,6 +61,10 @@ const INLINE_PATTERNS: {
         {parseInline(m[1])}
       </a>
     ),
+  },
+  {
+    re: /\[(\d+)\]/,
+    render: (m, key) => <CitationMarker key={key} marker={Number(m[1])} />,
   },
   {
     re: /\*\*([^*]+)\*\*/,
@@ -276,15 +311,25 @@ function renderMultiline(lines: string[]): React.ReactNode {
 export function Markdown({
   content,
   className = "",
+  citations = [],
+  onCitationClick,
 }: {
   content: string;
   className?: string;
+  citations?: Citation[];
+  onCitationClick?: (citation: Citation) => void;
 }) {
   const blocks = parseBlocks(content);
+  const markerToCitation = React.useMemo(() => {
+    const map = new Map<number, Citation>();
+    for (const citation of citations) map.set(citation.marker, citation);
+    return map;
+  }, [citations]);
 
   return (
-    <div className={`text-[15px] leading-7 ${className}`}>
-      {blocks.map((block, index) => {
+    <CitationContext.Provider value={{ markerToCitation, onCitationClick }}>
+      <div className={`text-[15px] leading-7 ${className}`}>
+        {blocks.map((block, index) => {
         const key = `b${index}`;
         switch (block.type) {
           case "code":
@@ -390,7 +435,8 @@ export function Markdown({
           default:
             return null;
         }
-      })}
-    </div>
+        })}
+      </div>
+    </CitationContext.Provider>
   );
 }

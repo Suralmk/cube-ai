@@ -107,12 +107,13 @@ export class ChatController {
 
     // Runs before any SSE data is written, so failures here (invalid session,
     // upstream 429/404, etc.) propagate as a normal JSON error response.
-    const { userMessage, stream } = await this.chatService.startStreaming(
-      id,
-      userId,
-      organizationId,
-      body.content,
-    );
+    const { userMessage, stream, sources } =
+      await this.chatService.startStreaming(
+        id,
+        userId,
+        organizationId,
+        body.content,
+      );
 
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache, no-transform');
@@ -123,6 +124,12 @@ export class ChatController {
     const send = (event: Record<string, unknown>) =>
       res.write(`data: ${JSON.stringify(event)}\n\n`);
 
+    // Keep the Next.js rewrite proxy (and browsers) from idle-closing the
+    // connection while reasoning models think without emitting content.
+    const keepAlive = setInterval(() => {
+      res.write(': keepalive\n\n');
+    }, 5000);
+
     send({ type: 'user_message', message: userMessage });
 
     let full = '';
@@ -132,11 +139,17 @@ export class ChatController {
         send({ type: 'delta', content: delta });
       }
 
+      const content =
+        full.trim() ||
+        'I could not generate a response. Please try again.';
+      const citationsToSave = full.trim() ? sources : [];
+
       const assistantMessage = await this.chatService.saveAssistantMessage(
         id,
         userId,
         organizationId,
-        full,
+        content,
+        citationsToSave,
       );
 
       send({ type: 'done', message: assistantMessage });
@@ -149,6 +162,7 @@ export class ChatController {
             : 'Failed to generate a response',
       });
     } finally {
+      clearInterval(keepAlive);
       res.end();
     }
   }

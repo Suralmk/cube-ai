@@ -1,10 +1,13 @@
-import { pgTable, text, timestamp, index, pgEnum } from "drizzle-orm/pg-core"
+import { pgTable, text, timestamp, integer, index, pgEnum } from "drizzle-orm/pg-core"
 import { user } from "./auth.schema"
 import { organization } from "./organization.schema"
 
 export const documentStatusEnum = pgEnum("document_status", [
   "processing",
   "ready",
+  "pending",
+  "indexing",
+  "indexed",
   "failed",
 ])
 
@@ -22,7 +25,10 @@ export const document = pgTable(
     filename: text("filename").notNull(),
     docuemntType: text("docuemnt_type").notNull(),
     s3_key: text("s3_key").notNull(),
-    status: documentStatusEnum("status").notNull().default("processing"),
+    status: documentStatusEnum("status").notNull().default("pending"),
+    pageCount: integer("page_count"),
+    chunkCount: integer("chunk_count"),
+    errorMessage: text("error_message"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at")
       .notNull()

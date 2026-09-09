@@ -13,5 +13,24 @@ export default () => ({
     chatModel:
       process.env.OPENROUTER_CHAT_MODEL ??
       'nvidia/nemotron-3-ultra-550b-a55b:free',
+    embeddingModel:
+      process.env.OPENROUTER_EMBEDDING_MODEL ??
+      'nvidia/llama-nemotron-embed-vl-1b-v2:free',
+  },
+  qdrant: {
+    url: process.env.QDRANT_URL ?? 'http://localhost:6333',
+    apiKey: process.env.QDRANT_API_KEY,
+  },
+  rag: {
+    topK: parseInt(process.env.RAG_TOP_K ?? '5', 10),
+    chunkSize: parseInt(process.env.RAG_CHUNK_SIZE ?? '1000', 10),
+    chunkOverlap: parseInt(process.env.RAG_CHUNK_OVERLAP ?? '200', 10),
+  },
+  chat: {
+    historyLimit: parseInt(process.env.CHAT_HISTORY_LIMIT ?? '5', 10),
+  },
+  storage: {
+    driver: process.env.STORAGE_DRIVER ?? 'local',
+    localDir: process.env.STORAGE_LOCAL_DIR ?? './storage',
   },
 });

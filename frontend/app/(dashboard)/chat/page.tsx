@@ -5,21 +5,60 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
-import { Send, Sparkles } from "lucide-react";
+import { Send } from "lucide-react";
 import { toast } from "sonner";
 import {
   createChatSession,
   fetchSessionMessages,
   streamChatMessage,
+  type Citation,
 } from "@/lib/api/chat";
 import { ApiError } from "@/lib/api-client";
 import { Markdown } from "@/components/markdown";
+import { PdfViewerPanel, type PdfTarget } from "@/components/pdf-viewer-panel";
+import { FileText } from "lucide-react";
 
 type Message = {
   id: string;
   role: "user" | "assistant";
   content: string;
+  citations?: Citation[];
 };
+
+function CitationSources({
+  citations,
+  onOpen,
+}: {
+  citations: Citation[];
+  onOpen: (citation: Citation) => void;
+}) {
+  if (citations.length === 0) return null;
+
+  return (
+    <div className="mt-3 flex flex-col gap-1.5 border-t border-border/60 pt-3">
+      <span className="text-xs font-medium text-muted-foreground">Sources</span>
+      <div className="flex flex-wrap gap-2">
+        {citations.map((citation) => (
+          <button
+            key={citation.id}
+            type="button"
+            onClick={() => onOpen(citation)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-2.5 py-1 text-xs text-foreground transition-colors hover:bg-muted"
+          >
+            <span className="flex h-4 min-w-4 items-center justify-center rounded bg-primary/10 px-1 text-[0.7em] font-semibold text-primary">
+              {citation.marker}
+            </span>
+            <FileText className="h-3 w-3 text-muted-foreground" />
+            <span className="max-w-[16rem] truncate">
+              {citation.documentName}
+            </span>
+            <span className="text-muted-foreground">p.{citation.pageNumber}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function ChatInputForm({
   input,
@@ -104,6 +143,7 @@ function ChatPageContent() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(!!sessionId);
   const [isSending, setIsSending] = useState(false);
+  const [pdfTarget, setPdfTarget] = useState<PdfTarget | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeSessionRef = useRef<string | null>(sessionId);
   const skipNextLoadRef = useRef(false);
@@ -137,6 +177,7 @@ function ChatPageContent() {
             id: m.id,
             role: m.role as "user" | "assistant",
             content: m.content,
+            citations: m.citations ?? [],
           })),
         );
       })
@@ -177,8 +218,10 @@ function ChatPageContent() {
       setMessages((prev) => [
         ...prev,
         { id: tempUserId, role: "user", content },
+        { id: assistantId, role: "assistant", content: "" },
       ]);
 
+      let receivedDelta = false;
       try {
         let activeSessionId = activeSessionRef.current;
 
@@ -204,49 +247,38 @@ function ChatPageContent() {
             );
           },
           onDelta: (delta) => {
-            setMessages((prev) => {
-              if (!prev.some((m) => m.id === assistantId)) {
-                return [
-                  ...prev,
-                  { id: assistantId, role: "assistant", content: delta },
-                ];
-              }
-              return prev.map((m) =>
+            receivedDelta = true;
+            setMessages((prev) =>
+              prev.map((m) =>
                 m.id === assistantId
                   ? { ...m, content: m.content + delta }
                   : m,
-              );
-            });
+              ),
+            );
           },
           onDone: (message) => {
-            setMessages((prev) => {
-              if (prev.some((m) => m.id === assistantId)) {
-                return prev.map((m) =>
-                  m.id === assistantId
-                    ? {
-                        id: message.id,
-                        role: "assistant",
-                        content: message.content,
-                      }
-                    : m,
-                );
-              }
-              return [
-                ...prev,
-                {
-                  id: message.id,
-                  role: "assistant",
-                  content: message.content,
-                },
-              ];
-            });
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId
+                  ? {
+                      id: message.id,
+                      role: "assistant",
+                      content: message.content,
+                      citations: message.citations ?? [],
+                    }
+                  : m,
+              ),
+            );
           },
         });
       } catch (error) {
-        setMessages((prev) =>
-          prev.filter((m) => m.id !== tempUserId && m.id !== assistantId),
-        );
-        setInput(content);
+        // Keep any tokens already streamed; only roll back when nothing arrived.
+        if (!receivedDelta) {
+          setMessages((prev) =>
+            prev.filter((m) => m.id !== tempUserId && m.id !== assistantId),
+          );
+          setInput(content);
+        }
         toast.error(
           error instanceof ApiError
             ? error.message
@@ -259,6 +291,18 @@ function ChatPageContent() {
     [input, isSending, router],
   );
 
+  const openCitation = useCallback((citation: Citation) => {
+    if (!citation.documentId) {
+      toast.error("This source is no longer available");
+      return;
+    }
+    setPdfTarget({
+      documentId: citation.documentId,
+      documentName: citation.documentName,
+      page: citation.pageNumber,
+    });
+  }, []);
+
   if (isLoading) {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -269,23 +313,12 @@ function ChatPageContent() {
 
   return (
     <div className="relative flex flex-col h-full min-h-0 flex-1 overflow-hidden">
+      <PdfViewerPanel target={pdfTarget} onClose={() => setPdfTarget(null)} />
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-32 bg-gradient-to-b from-white via-white/70 to-white/0 dark:from-zinc-950 dark:via-zinc-950/70 dark:to-zinc-950/0" />
-
-      <div className="relative z-20 shrink-0 px-4 pt-6 pb-2 max-w-4xl mx-auto w-full">
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-          Knowledge Chat
-        </h1>
-        <p className="text-muted-foreground mt-1 text-sm md:text-base">
-          Ask questions — answers come from Cube AI via OpenRouter.
-        </p>
-      </div>
 
       {!hasMessages && !isSending ? (
         <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-4 min-h-0">
           <div className="flex flex-col items-center text-center mb-8 max-w-lg">
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-              <Sparkles className="h-6 w-6 text-primary" />
-            </div>
             <h2 className="text-xl font-semibold tracking-tight">
               What do you need help with?
             </h2>
@@ -326,8 +359,22 @@ function ChatPageContent() {
                     }`}
                   >
                     {msg.role === "assistant" ? (
-                      <div className="text-foreground">
-                        <Markdown content={msg.content} />
+                      <div className="w-full text-foreground">
+                        {msg.content.trim() ? (
+                          <>
+                            <Markdown
+                              content={msg.content}
+                              citations={msg.citations ?? []}
+                              onCitationClick={openCitation}
+                            />
+                            <CitationSources
+                              citations={msg.citations ?? []}
+                              onOpen={openCitation}
+                            />
+                          </>
+                        ) : (
+                          <TypingIndicator />
+                        )}
                       </div>
                     ) : (
                       <div className="px-4 py-3 rounded-2xl bg-primary text-primary-foreground">

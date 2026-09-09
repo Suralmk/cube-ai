@@ -22,6 +22,20 @@
       "when": 1784036626839,
       "tag": "0002_slim_natasha_romanoff",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1784847885491,
+      "tag": "0003_wild_cassandra_nova",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1784847885492,
+      "tag": "0004_status_default_pending",
+      "breakpoints": true
     }
   ]
 }

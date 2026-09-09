@@ -9,6 +9,20 @@ export function getApiBaseUrl(): string {
   return "http://localhost:3000";
 }
 
+/**
+ * Base URL for long-lived SSE requests.
+ * Next.js rewrites often idle-close proxied streams, so in local dev we hit
+ * Nest directly. Cookies are still sent (localhost ignores port).
+ */
+export function getStreamApiBaseUrl(): string {
+  const configured = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (configured) return configured.replace(/\/$/, "");
+  if (typeof window !== "undefined" && window.location.hostname === "localhost") {
+    return "http://localhost:8000";
+  }
+  return getApiBaseUrl();
+}
+
 /** @deprecated Use getApiBaseUrl() for runtime resolution */
 export const API_BASE_URL = getApiBaseUrl();
 

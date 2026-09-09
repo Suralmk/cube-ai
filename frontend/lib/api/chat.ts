@@ -1,4 +1,10 @@
-import { apiFetch, apiUrl, ApiError } from "@/lib/api-client";
+import {
+  apiFetch,
+  apiUrl,
+  getStreamApiBaseUrl,
+  API_PREFIX,
+  ApiError,
+} from "@/lib/api-client";
 
 export type ChatSession = {
   id: string;
@@ -9,6 +15,19 @@ export type ChatSession = {
   updatedAt: string;
 };
 
+export type Citation = {
+  id: string;
+  messageId: string;
+  organizationId: string | null;
+  documentId: string | null;
+  documentName: string;
+  pageNumber: number;
+  chunkText: string;
+  score: number | null;
+  marker: number;
+  createdAt?: string;
+};
+
 export type ChatMessage = {
   id: string;
   organizationId: string | null;
@@ -16,6 +35,7 @@ export type ChatMessage = {
   sessionId: string | null;
   content: string;
   role: "user" | "assistant" | string;
+  citations?: Citation[];
   createdAt: string;
   updatedAt: string;
 };
@@ -82,16 +102,14 @@ export async function streamChatMessage(
     signal?: AbortSignal;
   },
 ): Promise<void> {
-  const response = await fetch(
-    apiUrl(`/chat/sessions/${sessionId}/messages/stream`),
-    {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content }),
-      signal: handlers.signal,
-    },
-  );
+  const streamUrl = `${getStreamApiBaseUrl()}/${API_PREFIX}/chat/sessions/${sessionId}/messages/stream`;
+  const response = await fetch(streamUrl, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content }),
+    signal: handlers.signal,
+  });
 
   if (!response.ok || !response.body) {
     const contentType = response.headers.get("content-type") ?? "";
