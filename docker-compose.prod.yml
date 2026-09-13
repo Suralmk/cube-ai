@@ -64,6 +64,24 @@ services:
     networks:
       - cube-prod-network
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: cube-ai-frontend-prod
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      - API_PROXY_URL=http://api:8000
+    depends_on:
+      - api
+    networks:
+      - cube-prod-network
+
 volumes:
   postgres_prod_data:
   qdrant_prod_data:

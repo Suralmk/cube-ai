@@ -72,6 +72,28 @@ services:
     networks:
       - cube-network
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: cube-ai-frontend-dev
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - API_PROXY_URL=http://api:8000
+    depends_on:
+      - api
+    networks:
+      - cube-network
+
 volumes:
   postgres_dev_data:
   qdrant_dev_data:
@@ -79,3 +101,4 @@ volumes:
 networks:
   cube-network:
     driver: bridge
+
