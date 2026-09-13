@@ -1,0 +1,41 @@
+# Node & dependencies
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build artifacts
+dist
+coverage
+.turbo
+
+# Frontend (explicitly excluded)
+frontend/
+
+# Local storage & temporary files
+storage/
+uploads/
+tmp/
+.temp/
+
+# Environment files & secrets
+.env
+.env.*
+!.env.example
+
+# Infrastructure & Terraform
+terraform/
+.terraform/
+*.tfstate*
+
+# Git and IDE
+.git
+.gitignore
+.vscode
+.idea
+.gemini
+
+# Documentation & notes
+docs/
+*.md

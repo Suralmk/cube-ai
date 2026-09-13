@@ -1,0 +1,20 @@
+FROM node:22-alpine
+
+# Enable Corepack and PNPM
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+WORKDIR /app
+
+# Copy dependency files
+COPY package.json pnpm-lock.yaml ./
+
+# Install all dependencies
+RUN pnpm install
+
+# Copy configuration files
+COPY tsconfig.json tsconfig.build.json nest-cli.json ./
+
+EXPOSE 8000
+
+# Start NestJS in watch mode for development hot-reloading
+CMD ["pnpm", "run", "start:dev"]

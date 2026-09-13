@@ -1,0 +1,7 @@
+# Default Docker Compose configuration (points to development stack)
+# For explicit environments:
+#   Development: docker compose -f docker-compose.dev.yml up
+#   Production:  docker compose -f docker-compose.prod.yml up
+
+include:
+  - docker-compose.dev.yml

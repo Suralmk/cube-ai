@@ -1,0 +1,81 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: cube-ai-backend-dev
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./src:/app/src
+      - ./drizzle:/app/drizzle
+      - ./scripts:/app/scripts
+      - ./storage:/app/storage
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - PORT=8000
+      - API_PREFIX=api/v1
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/cube_ai
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=cube_ai
+      - QDRANT_URL=http://qdrant:6333
+      - STORAGE_DRIVER=local
+      - STORAGE_LOCAL_DIR=./storage
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-dev-secret-change-me-min-32-characters-long}
+      - BETTER_AUTH_URL=${BETTER_AUTH_URL:-http://localhost:8000}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - OPENROUTER_CHAT_MODEL=${OPENROUTER_CHAT_MODEL:-meta-llama/llama-3.3-70b-instruct:free}
+      - OPENROUTER_EMBEDDING_MODEL=${OPENROUTER_EMBEDDING_MODEL:-nvidia/llama-nemotron-embed-vl-1b-v2:free}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    networks:
+      - cube-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: cube-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: cube_ai
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d cube_ai"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - cube-network
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: cube-qdrant-dev
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_dev_data:/qdrant/storage
+    networks:
+      - cube-network
+
+volumes:
+  postgres_dev_data:
+  qdrant_dev_data:
+
+networks:
+  cube-network:
+    driver: bridge
