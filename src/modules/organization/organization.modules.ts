@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { LoggerProvider } from 'src/common/providers/logger.provider';
+import { LoggerProvider } from '../../common/providers/logger.provider';
 import { OrganizationController } from './organization.controller';
 import { OrganizationService } from './organization.service';
 import { DbModule } from '../../db/db.module';

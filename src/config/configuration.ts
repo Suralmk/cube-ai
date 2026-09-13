@@ -32,5 +32,13 @@ export default () => ({
   storage: {
     driver: process.env.STORAGE_DRIVER ?? 'local',
     localDir: process.env.STORAGE_LOCAL_DIR ?? './storage',
+    region: process.env.AWS_REGION ?? 'us-east-1',
+    bucketName: process.env.AWS_S3_BUCKET_NAME,
+    endpoint: process.env.AWS_S3_ENDPOINT,
+    forcePathStyle: process.env.AWS_S3_FORCE_PATH_STYLE === 'true',
+    signedUrlExpiry: parseInt(
+      process.env.AWS_S3_SIGNED_URL_EXPIRY ?? '3600',
+      10,
+    ),
   },
 });

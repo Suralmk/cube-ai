@@ -1,15 +1,23 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
 @Injectable()
 export class LoggerProvider {
-  private readonly logs: string[] = [];
+  private readonly logger = new Logger(LoggerProvider.name);
 
-  log(message: string) {
-    this.logs.push(message);
-    this.printAllLogs(message);
+  log(message: string, context?: string) {
+    this.logger.log(message, context);
   }
 
-  printAllLogs(message: string) {
-    console.log(message, this.logs);
+  error(message: string, trace?: string, context?: string) {
+    this.logger.error(message, trace, context);
+  }
+
+  warn(message: string, context?: string) {
+    this.logger.warn(message, context);
+  }
+
+  debug(message: string, context?: string) {
+    this.logger.debug(message, context);
   }
 }
+

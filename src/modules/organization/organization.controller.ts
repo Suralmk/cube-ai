@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Post } from '@nestjs/common';
-import { LoggerProvider } from 'src/common/providers/logger.provider';
+import { LoggerProvider } from '../../common/providers/logger.provider';
 import { OrganizationService } from './organization.service';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import {

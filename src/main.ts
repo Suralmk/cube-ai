@@ -23,7 +23,10 @@ async function bootstrap() {
   );
 
   app.use(helmet());
-  app.setGlobalPrefix(process.env.API_PREFIX ?? 'api/v1');
+  app.enableShutdownHooks();
+  app.setGlobalPrefix(process.env.API_PREFIX ?? 'api/v1', {
+    exclude: ['health', 'health/live', 'health/ready', 'health/(.*)'],
+  });
   app.enableCors({
     origin: process.env.FRONTEND_URL!,
     credentials: true,
