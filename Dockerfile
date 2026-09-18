@@ -3,19 +3,19 @@
 # ==========================================
 FROM node:22-alpine AS builder
 
-# Enable Corepack and PNPM
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Enable Corepack and PNPM (matching lockfile v9)
+RUN corepack enable && corepack prepare pnpm@9 --activate
 
 WORKDIR /app
 
 # Copy dependency definitions
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml .npmrc ./
 
 # Install all dependencies (including devDependencies for build)
 RUN pnpm install --frozen-lockfile
 
 # Copy application source and build configurations
-COPY tsconfig.json tsconfig.build.json nest-cli.json ./
+COPY tsconfig.json tsconfig.build.json nest-cli.json drizzle.config.ts ./
 COPY src/ ./src/
 COPY drizzle/ ./drizzle/
 COPY scripts/ ./scripts/
@@ -45,6 +45,7 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/drizzle ./drizzle
 COPY --from=builder /app/scripts ./scripts
+COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
 
 # Create storage directory and set non-root ownership
 RUN mkdir -p /app/storage && chown -R node:node /app

@@ -12,6 +12,7 @@ services:
       - ./drizzle:/app/drizzle
       - ./scripts:/app/scripts
       - ./storage:/app/storage
+      - ./drizzle.config.ts:/app/drizzle.config.ts
       - /app/node_modules
     environment:
       - NODE_ENV=development

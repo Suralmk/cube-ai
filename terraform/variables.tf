@@ -25,6 +25,7 @@ variable "db_username" {
 
 variable "db_password" {
   type        = string
+  description = "Master password for RDS database instance"
   sensitive   = true
-  default     = "Cube@123"
 }
+
