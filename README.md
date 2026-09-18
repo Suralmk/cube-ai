@@ -18,7 +18,7 @@
 
 ---
 
-## 📌 Executive Summary
+## Executive Summary
 
 **Cube AI** is a production-grade, multi-tenant SaaS platform built for field-service organizations (HVAC, elevators, solar installations, generators, fire safety, and industrial machinery). 
 
@@ -26,7 +26,7 @@ Field engineers and technicians upload heavy technical manuals, schematics, and 
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 ```text
                                    ┌──────────────────────────────────┐
@@ -63,7 +63,7 @@ Field engineers and technicians upload heavy technical manuals, schematics, and 
 
 ---
 
-## 🚀 Key Highlights & Features
+## Key Highlights & Features
 
 ### 1. Multi-Tenant Vector Isolation
 - True multi-tenancy: Documents, conversations, and vector spaces are strictly isolated per tenant organization.
@@ -90,7 +90,7 @@ Field engineers and technicians upload heavy technical manuals, schematics, and 
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer | Technologies |
 | :--- | :--- |
@@ -105,7 +105,7 @@ Field engineers and technicians upload heavy technical manuals, schematics, and 
 
 ---
 
-## 🔄 Ingestion & RAG Pipeline
+## Ingestion & RAG Pipeline
 
 ```text
 [PDF Upload] ──► [Amazon S3 / Local Storage] ──► Status: "pending"
@@ -141,7 +141,7 @@ Field engineers and technicians upload heavy technical manuals, schematics, and 
 
 ---
 
-## 🐳 Quickstart with Docker Compose
+## Quickstart with Docker Compose
 
 Follow these steps to clone and run the full stack (Frontend, NestJS Backend, PostgreSQL, and Qdrant vector database) using Docker.
 
@@ -204,7 +204,7 @@ docker compose down
 
 ---
 
-## ☁️ AWS Production Deployment (Terraform)
+## AWS Production Deployment (Terraform)
 
 The `terraform/` directory defines the complete AWS infrastructure stack:
 
@@ -238,7 +238,7 @@ terraform apply tfplan
 
 ---
 
-## 💻 Local Manual Development Setup
+## Local Manual Development Setup
 
 If you prefer running the services without Docker:
 
@@ -262,7 +262,7 @@ cd frontend && pnpm run dev
 
 ---
 
-## 🛡️ Database Management (Drizzle ORM)
+## Database Management (Drizzle ORM)
 
 ```bash
 pnpm run db:generate   # Generate SQL migrations from schema
@@ -270,9 +270,3 @@ pnpm run db:migrate    # Apply migrations via Drizzle Kit
 pnpm run db:push       # Push schema directly to database (dev)
 pnpm run db:studio     # Launch Drizzle Studio DB GUI
 ```
-
----
-
-## 📄 License
-
-UNLICENSED — Private project.
