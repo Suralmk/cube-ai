@@ -4,7 +4,7 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { eq, ilike, or } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import * as schema from '../../db/schema';
 import { DRIZZLE } from '../../db/db.module';
@@ -38,6 +38,37 @@ export class OrganizationService {
 
     if (!result) {
       throw new NotFoundException('Organization not found');
+    }
+
+    return result;
+  }
+
+  async fetchOrgBySlug(slug: string) {
+    const trimmed = slug.trim();
+    const [result] = await this.db
+      .select({
+        organization: schema.organization,
+        profile: schema.organizationProfile,
+        settings: schema.organizationSettings,
+      })
+      .from(schema.organization)
+      .leftJoin(
+        schema.organizationProfile,
+        eq(schema.organizationProfile.organizationId, schema.organization.id),
+      )
+      .leftJoin(
+        schema.organizationSettings,
+        eq(schema.organizationSettings.organizationId, schema.organization.id),
+      )
+      .where(
+        or(
+          eq(schema.organization.slug, trimmed),
+          ilike(schema.organization.slug, trimmed),
+        ),
+      );
+
+    if (!result) {
+      throw new NotFoundException(`Organization '${slug}' not found`);
     }
 
     return result;

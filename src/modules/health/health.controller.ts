@@ -5,11 +5,13 @@ import {
   Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import { AllowAnonymous } from '@thallesp/nestjs-better-auth';
 import { sql } from 'drizzle-orm';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DRIZZLE } from '../../db/db.module';
 import * as schema from '../../db/schema';
 
+@AllowAnonymous()
 @Controller('health')
 export class HealthController {
   private readonly logger = new Logger(HealthController.name);

@@ -15,6 +15,7 @@ import { UsersModule } from './modules/users/users.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { OrganizationModule } from './modules/organization/organization.modules';
+import { PublicModule } from './modules/public/public.module';
 // better auth
 import { AuthModule as BetterAuthModule } from '@thallesp/nestjs-better-auth';
 import { auth } from './auth';
@@ -34,6 +35,7 @@ import { auth } from './auth';
     OrganizationModule,
     DocumentsModule,
     ChatModule,
+    PublicModule,
   ],
   controllers: [AppController],
   providers: [AppService],

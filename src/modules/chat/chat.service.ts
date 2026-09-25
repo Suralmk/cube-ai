@@ -1,6 +1,6 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { asc, desc, eq, inArray } from 'drizzle-orm';
+import { asc, desc, eq, inArray, and } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import * as schema from '../../db/schema';
 import { DRIZZLE } from '../../db/db.module';
@@ -576,6 +576,147 @@ export class ChatService {
     return { ...message, citations };
   }
 
+  // --- Public Chat Operations ---
+
+  async createPublicSession(organizationId: string, title?: string) {
+    const id = randomUUID();
+    const [session] = await this.db
+      .insert(schema.chatSession)
+      .values({
+        id,
+        userId: null,
+        organizationId,
+        title: title?.trim() || 'Public Maintenance Chat',
+      })
+      .returning();
+    return session;
+  }
+
+  async getPublicSessionMessages(sessionId: string, organizationId: string) {
+    const [session] = await this.db
+      .select()
+      .from(schema.chatSession)
+      .where(
+        and(
+          eq(schema.chatSession.id, sessionId),
+          eq(schema.chatSession.organizationId, organizationId),
+        ),
+      );
+
+    if (!session) {
+      throw new NotFoundException('Chat session not found');
+    }
+
+    const messages = await this.db
+      .select()
+      .from(schema.chatMessage)
+      .where(eq(schema.chatMessage.sessionId, sessionId))
+      .orderBy(asc(schema.chatMessage.createdAt));
+
+    const citationsByMessage = await this.loadCitations(
+      messages.map((m) => m.id),
+    );
+
+    return {
+      session,
+      messages: messages.map((m) => ({
+        ...m,
+        citations: citationsByMessage.get(m.id) ?? [],
+      })),
+    };
+  }
+
+  async addPublicMessage(
+    sessionId: string,
+    organizationId: string,
+    content: string,
+    role: 'user' | 'assistant',
+  ) {
+    const [session] = await this.db
+      .select()
+      .from(schema.chatSession)
+      .where(
+        and(
+          eq(schema.chatSession.id, sessionId),
+          eq(schema.chatSession.organizationId, organizationId),
+        ),
+      );
+
+    if (!session) {
+      throw new NotFoundException('Chat session not found');
+    }
+
+    const [message] = await this.db
+      .insert(schema.chatMessage)
+      .values({
+        id: randomUUID(),
+        sessionId,
+        userId: null,
+        organizationId,
+        content,
+        role,
+      })
+      .returning();
+
+    await this.db
+      .update(schema.chatSession)
+      .set({ updatedAt: new Date() })
+      .where(eq(schema.chatSession.id, sessionId));
+
+    return message;
+  }
+
+  async startPublicStreaming(
+    sessionId: string,
+    organizationId: string,
+    content: string,
+    companyContext?: {
+      name: string;
+      slogan?: string | null;
+      industry?: string | null;
+    },
+  ) {
+    const userMessage = await this.addPublicMessage(
+      sessionId,
+      organizationId,
+      content.trim(),
+      'user',
+    );
+
+    const { llmMessages, sources } = await this.buildPrompt(
+      sessionId,
+      organizationId,
+      content.trim(),
+      companyContext,
+    );
+
+    const stream = await this.openRouter.createChatStream(llmMessages);
+
+    return { userMessage, stream, sources };
+  }
+
+  async savePublicAssistantMessage(
+    sessionId: string,
+    organizationId: string,
+    content: string,
+    sources: RetrievedSource[] = [],
+  ) {
+    const message = await this.addPublicMessage(
+      sessionId,
+      organizationId,
+      content,
+      'assistant',
+    );
+
+    const citations = await this.persistCitations(
+      message.id,
+      organizationId,
+      sources,
+    );
+
+    return { ...message, citations };
+  }
+
   /**
    * Build the LLM message array: system prompt + retrieved context + the last
    * CHAT_HISTORY_LIMIT turns. Retrieval failures degrade gracefully to a
@@ -585,6 +726,11 @@ export class ChatService {
     sessionId: string,
     organizationId: string,
     query: string,
+    companyContext?: {
+      name: string;
+      slogan?: string | null;
+      industry?: string | null;
+    },
   ): Promise<{ llmMessages: LlmMessage[]; sources: RetrievedSource[] }> {
     const sources = await this.retrieve(organizationId, query);
 
@@ -611,10 +757,20 @@ export class ChatService {
         content: m.content,
       }));
 
+    const companyPrefix = companyContext
+      ? `# COMPANY SCOPE & IDENTITY
+You are the dedicated public Maintenance Assistant for **${companyContext.name}**.
+${companyContext.slogan ? `Company Slogan / Mission: ${companyContext.slogan}\n` : ''}${companyContext.industry ? `Industry: ${companyContext.industry}\n` : ''}
+Your primary goal is to help technicians, operators, clients, and maintenance personnel understand, operate, inspect, troubleshoot, and service **${companyContext.name}**'s equipment and maintenance systems.
+All information must be strictly grounded in ${companyContext.name}'s verified documentation and manuals.
+If the information is not present in ${companyContext.name}'s maintenance documentation, explicitly state: "The available maintenance documentation for ${companyContext.name} does not contain information about this." Do not make up procedures.
+`
+      : '';
+
     const systemContent =
       sources.length > 0
-        ? `${BASE_SYSTEM_PROMPT}\n\n${this.buildContextBlock(sources)}`
-        : `${BASE_SYSTEM_PROMPT}\n\nNo relevant passages were found in the uploaded documents for this question. Answer from general knowledge and make clear the answer is not grounded in the organization's documents. Do not invent citations.`;
+        ? `${companyPrefix ? companyPrefix + '\n\n' : ''}${BASE_SYSTEM_PROMPT}\n\n${this.buildContextBlock(sources)}`
+        : `${companyPrefix ? companyPrefix + '\n\n' : ''}${BASE_SYSTEM_PROMPT}\n\nNo relevant passages were found in ${companyContext ? companyContext.name + "'s" : "the organization's"} uploaded documents for this question. Clearly indicate that ${companyContext ? companyContext.name + "'s" : "the organization's"} available documentation does not provide enough information for this question. Do not invent citations or procedures.`;
 
     const llmMessages: LlmMessage[] = [
       { role: 'system', content: systemContent },

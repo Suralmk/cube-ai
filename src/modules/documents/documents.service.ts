@@ -28,6 +28,41 @@ export class DocumentsService {
       .orderBy(desc(schema.document.createdAt));
   }
 
+  async findById(id: string) {
+    const [doc] = await this.db
+      .select()
+      .from(schema.document)
+      .where(eq(schema.document.id, id));
+
+    if (!doc) {
+      throw new NotFoundException('Document not found');
+    }
+
+    return doc;
+  }
+
+  async findPublicDocumentsByOrg(organizationId: string) {
+    return this.db
+      .select({
+        id: schema.document.id,
+        title: schema.document.title,
+        filename: schema.document.filename,
+        documentType: schema.document.docuemntType,
+        status: schema.document.status,
+        pageCount: schema.document.pageCount,
+        chunkCount: schema.document.chunkCount,
+        createdAt: schema.document.createdAt,
+      })
+      .from(schema.document)
+      .where(
+        and(
+          eq(schema.document.organizationId, organizationId),
+          eq(schema.document.status, 'ready'),
+        ),
+      )
+      .orderBy(desc(schema.document.createdAt));
+  }
+
   async findByIdForOrg(id: string, organizationId: string) {
     const [doc] = await this.db
       .select()
