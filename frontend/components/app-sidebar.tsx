@@ -47,7 +47,9 @@ import {
   MoreVertical,
   Pencil,
   Trash2,
+  Share2,
 } from "lucide-react";
+import { fetchOrganization } from "@/lib/api/organizations";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -62,7 +64,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const navItems = [
-  { name: "Global Chat", href: "/chat", icon: Sparkles },
+  { name: "Chat", href: "/chat", icon: Sparkles },
   { name: "Documents", href: "/documents", icon: FileText },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
@@ -226,9 +228,18 @@ export function AppSidebar() {
   const { theme, setTheme } = useTheme();
   const { state } = useSidebar();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [orgSlug, setOrgSlug] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
+
+    fetchOrganization()
+      .then((bundle) => {
+        if (bundle?.organization?.slug) {
+          setOrgSlug(bundle.organization.slug);
+        }
+      })
+      .catch(() => {});
 
     const loadSessions = () => {
       fetchChatSessions()
@@ -387,6 +398,22 @@ export function AppSidebar() {
               <Settings className="w-4 h-4" />
               Settings
             </DropdownMenuItem>
+
+            {orgSlug && (
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    const url = `${window.location.origin}/share/${orgSlug}`;
+                    navigator.clipboard.writeText(url);
+                    toast.success("Public chat link copied to clipboard!");
+                  }
+                }}
+              >
+                <Share2 className="w-4 h-4" />
+                Share Assistant Link
+              </DropdownMenuItem>
+            )}
 
             <DropdownMenuSeparator />
 

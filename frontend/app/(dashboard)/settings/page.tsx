@@ -5,7 +5,8 @@ import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
 import { fetchOrganization } from "@/lib/api/organizations";
 import type { OrganizationBranding } from "@/lib/types/organization";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,7 +18,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
-import { Building2, Palette, User, Upload, Monitor } from "lucide-react";
+import { Building2, Palette, User, Upload, Monitor, Share2, Copy, ExternalLink } from "lucide-react";
 import { useTheme } from "@teispace/next-themes";
 import { toast } from "sonner";
 
@@ -101,12 +102,13 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-4xl mx-auto w-full space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground mt-2">
-          Manage your organization profile, branding, and account.
-        </p>
+    <div className="flex-1 overflow-y-auto min-h-0 w-full">
+      <div className="p-6 md:p-8 max-w-4xl mx-auto w-full space-y-8 pb-16">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+          <p className="text-muted-foreground mt-2">
+            Manage your organization profile, branding, and account.
+          </p>
         {loadError && (
           <p className="text-sm text-amber-600 dark:text-amber-400 mt-2">
             {loadError}. Create an organization via Better Auth if you are a new user.
@@ -134,10 +136,80 @@ export default function SettingsPage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="org">
+        <TabsContent value="org" className="space-y-6">
+          <Card className="border-primary/20 bg-linear-to-br from-primary/5 via-background to-primary/5 shadow-xs">
+            <CardHeader className="pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <Share2 className="h-5 w-5 text-primary" />
+                      Shareable Public Chat Link
+                    </CardTitle>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                      <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      Live & Ready to Share
+                    </span>
+                  </div>
+                  <CardDescription>
+                    Allow anyone (technicians, operators, clients, staff) to chat with {orgName || "your company"}&apos;s maintenance assistant without logging in.
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center">
+                <div className="relative flex-1">
+                  <Input
+                    readOnly
+                    value={
+                      typeof window !== "undefined"
+                        ? `${window.location.origin}/share/${slug || "your-organization-slug"}`
+                        : `/share/${slug || "your-organization-slug"}`
+                    }
+                    className="bg-background font-mono text-xs pr-10 selection:bg-primary/20 border-zinc-300 dark:border-zinc-700"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="default"
+                  className="flex items-center gap-2 shrink-0 rounded-xl"
+                  onClick={() => {
+                    if (typeof window !== "undefined") {
+                      const url = `${window.location.origin}/share/${slug || "your-organization-slug"}`;
+                      navigator.clipboard.writeText(url);
+                      toast.success("Public chat link copied to clipboard!");
+                    }
+                  }}
+                >
+                  <Copy className="h-4 w-4" />
+                  Copy Link
+                </Button>
+                <a
+                  href={`/share/${slug || ""}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={cn(
+                    buttonVariants({ variant: "outline" }),
+                    "flex items-center gap-2 shrink-0 rounded-xl",
+                  )}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Open Public Chat
+                </a>
+              </div>
+              <div className="rounded-xl border border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground flex items-start gap-2">
+                <span className="font-semibold text-foreground">Note:</span>
+                <span>
+                  Questions asked through this public link are strictly grounded in your company&apos;s indexed maintenance manuals and technical documents.
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
-              <CardTitle>Organization</CardTitle>
+              <CardTitle>Organization Profile</CardTitle>
               <CardDescription>
                 Core organization record — maps to{" "}
                 <code className="text-xs">organization</code> and{" "}
@@ -158,7 +230,7 @@ export default function SettingsPage() {
                   <Label htmlFor="slug">Slug</Label>
                   <Input id="slug" value={slug} disabled />
                   <p className="text-xs text-muted-foreground">
-                    Unique URL identifier (read-only).
+                    Unique URL identifier used for your public chat link (read-only).
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -380,6 +452,7 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }

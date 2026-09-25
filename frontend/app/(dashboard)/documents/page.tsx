@@ -135,8 +135,9 @@ export default function DocumentsPage() {
   };
 
   return (
-    <div className="p-8 max-w-6xl mx-auto w-full space-y-8">
-      <PdfViewerPanel target={pdfTarget} onClose={() => setPdfTarget(null)} />
+    <div className="flex-1 overflow-y-auto min-h-0 w-full">
+      <div className="p-8 max-w-6xl mx-auto w-full space-y-8 pb-16">
+        <PdfViewerPanel target={pdfTarget} onClose={() => setPdfTarget(null)} />
 
       <input
         ref={fileInputRef}
@@ -270,6 +271,7 @@ export default function DocumentsPage() {
           </Table>
         </div>
       )}
+      </div>
     </div>
   );
 }

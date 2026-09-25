@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
-import { Send } from "lucide-react";
+import { Send, FileText, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   createChatSession,
@@ -16,7 +16,7 @@ import {
 import { ApiError } from "@/lib/api-client";
 import { Markdown } from "@/components/markdown";
 import { PdfViewerPanel, type PdfTarget } from "@/components/pdf-viewer-panel";
-import { FileText } from "lucide-react";
+import { fetchOrganization } from "@/lib/api/organizations";
 
 type Message = {
   id: string;
@@ -144,10 +144,33 @@ function ChatPageContent() {
   const [isLoading, setIsLoading] = useState(!!sessionId);
   const [isSending, setIsSending] = useState(false);
   const [pdfTarget, setPdfTarget] = useState<PdfTarget | null>(null);
+  const [orgSlug, setOrgSlug] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeSessionRef = useRef<string | null>(sessionId);
   const skipNextLoadRef = useRef(false);
   const hasMessages = messages.length > 0;
+
+  useEffect(() => {
+    fetchOrganization()
+      .then((bundle) => {
+        if (bundle?.organization?.slug) {
+          setOrgSlug(bundle.organization.slug);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleShare = () => {
+    if (!orgSlug) {
+      toast.error("Organization share link not available");
+      return;
+    }
+    if (typeof window !== "undefined") {
+      const url = `${window.location.origin}/share/${orgSlug}`;
+      navigator.clipboard.writeText(url);
+      toast.success("Public chat link copied to clipboard!");
+    }
+  };
 
   useEffect(() => {
     activeSessionRef.current = sessionId;
@@ -315,6 +338,20 @@ function ChatPageContent() {
     <div className="relative flex flex-col h-full min-h-0 flex-1 overflow-hidden">
       <PdfViewerPanel target={pdfTarget} onClose={() => setPdfTarget(null)} />
       <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-32 bg-gradient-to-b from-white via-white/70 to-white/0 dark:from-zinc-950 dark:via-zinc-950/70 dark:to-zinc-950/0" />
+
+      {orgSlug && (
+        <div className="absolute right-4 top-3 z-20">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleShare}
+            className="flex items-center gap-1.5 rounded-full bg-background/80 backdrop-blur-xs text-xs shadow-2xs hover:bg-background"
+          >
+            <Share2 className="h-3.5 w-3.5 text-primary" />
+            Share Assistant
+          </Button>
+        </div>
+      )}
 
       {!hasMessages && !isSending ? (
         <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-4 min-h-0">
