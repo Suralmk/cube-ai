@@ -32,8 +32,19 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const PUBLIC_PATHS = ["/login"];
+const PUBLIC_PATHS = ["/login", "/_not-found"];
 const ONBOARDING_PATH = "/onboarding/organization";
+
+function isPublicPath(path: string | null | undefined): boolean {
+  if (!path) return true;
+  const normalized = path.toLowerCase();
+  return (
+    PUBLIC_PATHS.includes(normalized) ||
+    normalized === "/share" ||
+    normalized.startsWith("/share/") ||
+    normalized.startsWith("/share?")
+  );
+}
 
 async function hydrateUserFromSession(): Promise<User | null> {
   const session = await getSession();
@@ -91,20 +102,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (isLoading) return;
 
     if (!user) {
-      if (!PUBLIC_PATHS.includes(pathname)) {
+      if (!isPublicPath(pathname)) {
         router.push("/login");
       }
       return;
     }
 
     if (!user.hasOrganization) {
-      if (pathname !== ONBOARDING_PATH) {
+      if (pathname !== ONBOARDING_PATH && !isPublicPath(pathname)) {
         router.push(ONBOARDING_PATH);
       }
       return;
     }
 
-    if (PUBLIC_PATHS.includes(pathname) || pathname === ONBOARDING_PATH) {
+    if (pathname === "/login" || pathname === ONBOARDING_PATH) {
       router.push("/chat");
     }
   }, [user, isLoading, pathname, router]);
