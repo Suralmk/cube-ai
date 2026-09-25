@@ -16,7 +16,6 @@ import {
   Sun,
   Moon,
   ShieldCheck,
-  BookOpen,
   Wrench,
   AlertTriangle,
   HelpCircle,
@@ -518,19 +517,14 @@ function PublicChatContent() {
                 Ask any question regarding equipment manuals, troubleshooting guides, safety protocols, error codes, and maintenance procedures.
               </p>
 
-              {/* Maintenance Resources Pill */}
-              <div className="flex flex-wrap items-center justify-center gap-2 pt-1 text-xs text-muted-foreground">
-                <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2.5 py-1 font-medium text-foreground">
-                  <BookOpen className="h-3.5 w-3.5 text-primary" />
-                  {documentCount} {documentCount === 1 ? "Technical Manual" : "Technical Manuals"} Available
-                </span>
-                {profile.industry && (
+              {profile.industry && (
+                <div className="flex flex-wrap items-center justify-center gap-2 pt-1 text-xs text-muted-foreground">
                   <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2.5 py-1 font-medium text-foreground">
                     <Wrench className="h-3.5 w-3.5 text-primary" />
                     {profile.industry}
                   </span>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Sample Prompts Grid */}
               <div className="grid w-full grid-cols-1 sm:grid-cols-2 gap-3 pt-4 text-left">
